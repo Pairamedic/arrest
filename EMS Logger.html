@@ -1,0 +1,281 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EMS Logger</title>
+<style>
+    :root {
+      --bg: #f5f5f5;
+      --text: #333;
+      --box: #fff;
+      --alert: red;
+    }
+    body.dark {
+      --bg: #1e1e1e;
+      --text: #eee;
+      --box: #2a2a2a;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      transition: background-color 0.5s;
+    }
+    body.flash-alert {
+      background-color: red !important;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.5em;
+    }
+    .section {
+      background-color: var(--box);
+      margin: 15px 0;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .button, .item {
+      display: block;
+      width: 100%;
+      font-size: 1.2em;
+      padding: 15px;
+      margin: 5px 0;
+      text-align: left;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .button {
+      background-color: #007bff;
+      color: white;
+      font-weight: bold;
+    }
+    .button:hover {
+      background-color: #0056b3;
+    }
+    .toggle-button {
+      background-color: #28a745;
+    }
+    .toggle-button:hover {
+      background-color: #1e7e34;
+    }
+    .cardiac-section .toggle-button {
+      background-color: #dc3545;
+    }
+    .item {
+      background-color: #e0e0e0;
+    }
+    .item.selected {
+      background-color: #a0e0a0;
+    }
+    .hidden {
+      display: none;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      margin-top: 10px;
+      padding: 10px;
+    }
+    .search-bar {
+      width: 100%;
+      padding: 10px;
+      font-size: 1em;
+      margin-bottom: 10px;
+    }
+    #darkToggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 5px 10px;
+      font-size: 0.9em;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    #timerDisplay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 1em;
+      font-weight: bold;
+    }
+    #alertBox {
+      position: absolute;
+      top: 50px;
+      left: 10px;
+      background-color: var(--alert);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 5px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<button id="darkToggle" onclick="toggleDarkMode()">🌙</button>
+
+<div id="alertBox">ALERT</div>
+<div id="timerDisplay" style="font-size:2em; font-weight:bold; color:red; text-align:center; width:100%; margin: 0 auto 10px auto; display:block;">00:00</div><h1>EMS Logger</h1>
+<div class="section">
+<label for="runId">Run # / Patient Initial</label>
+<input id="runId" placeholder="e.g., J05282025" style="width:100%; padding:10px; font-size:1em;" type="text"/>
+<button class="button" onclick="startTimer()">Start Timer</button>
+</div>
+<div class="section">
+<button class="button toggle-button" onclick="toggleSection('procedureBox')">Procedures</button>
+<input class="search-bar hidden" id="procedureSearch" oninput="filterItems('procedureBox', this.value)" placeholder="Search procedures..."/>
+<div class="hidden" id="procedureBox">
+<button class="item" onclick="selectItem(this, 'Procedures')">ALS Assessment</button>
+<button class="item" onclick="selectItem(this, 'Procedures')">Bag Valve Mask</button>
+<button class="item" onclick="selectItem(this, 'Procedures')">EKG 12-Lead</button>
+<button class="item" onclick="selectItem(this, 'Procedures')">Cardioversion</button>
+<button class="item" onclick="selectItem(this, 'Procedures')">Intubation</button>
+<button class="item" onclick="selectItem(this, 'Procedures')">Needle Decompression</button>
+</div>
+</div>
+<div class="section">
+<button class="button toggle-button" onclick="toggleSection('medBox')">Medications</button>
+<input class="search-bar hidden" id="medSearch" oninput="filterItems('medBox', this.value)" placeholder="Search medications..."/>
+<div class="hidden" id="medBox">
+<button class="item" onclick="selectItem(this, 'Medications')">Aspirin</button>
+<button class="item" onclick="selectItem(this, 'Medications')">Amiodarone</button>
+<button class="item" onclick="selectItem(this, 'Medications')">Epinephrine 1:10</button>
+<button class="item" onclick="selectItem(this, 'Medications')">Fentanyl</button>
+<button class="item" onclick="selectItem(this, 'Medications')">Ondansetron</button>
+</div>
+</div>
+<div class="section cardiac-section">
+<button class="button toggle-button" onclick="toggleSection('cardiacBox')">Cardiac Arrest</button>
+<div class="hidden" id="cardiacBox">
+<button class="item" onclick="selectItem(this, 'Cardiac')">Defibrillation</button>
+<button class="item" onclick="selectItem(this, 'Cardiac')">Cardioversion</button>
+<button class="item" onclick="selectItem(this, 'Cardiac')">Epinephrine 1:10</button>
+<button class="item" onclick="selectItem(this, 'Cardiac')">Fluids</button>
+<button class="item" onclick="selectItem(this, 'Cardiac')">Intubation</button>
+<button class="item" onclick="selectItem(this, 'Cardiac')">Supraglottic Airway Device</button>
+</div>
+</div>
+<div class="section">
+<h3>Export / Save</h3>
+<button class="button" onclick="generateLog()">Generate Summary</button>
+<textarea id="logOutput" placeholder="Your summary will appear here..."></textarea>
+<button class="button" onclick="downloadLog()">Export as File</button>
+</div>
+<script>
+    const log = [];
+    let timerInterval;
+    let seconds = 0;
+
+    function toggleSection(id) {
+      const section = document.getElementById(id);
+      const search = document.getElementById(id === 'procedureBox' ? 'procedureSearch' : id === 'medBox' ? 'medSearch' : null);
+      section.classList.toggle("hidden");
+      if (search) search.classList.toggle("hidden");
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+    }
+
+    function selectItem(element, category) {
+      const timestamp = new Date().toLocaleTimeString();
+      const entry = {
+        runId: document.getElementById("runId").value || "Unknown",
+        category: category,
+        item: element.innerText,
+        time: timestamp
+      };
+      log.push(entry);
+      element.classList.add("selected");
+    }
+
+    function generateLog() {
+      const output = log.map(entry =>
+        `Run ID: ${entry.runId}\nCategory: ${entry.category}\nItem: ${entry.item}\nTime: ${entry.time}\n---\n`
+      ).join("");
+      document.getElementById("logOutput").value = output;
+    }
+
+    function downloadLog() {
+      const text = document.getElementById("logOutput").value;
+      const blob = new Blob([text], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "EMS_Log.txt";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function filterItems(sectionId, query) {
+      const items = document.querySelectorAll(`#${sectionId} .item`);
+      const lower = query.toLowerCase();
+      items.forEach(item => {
+        item.style.display = item.innerText.toLowerCase().includes(lower) ? "block" : "none";
+      });
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      seconds = 0;
+      timerInterval = setInterval(() => {
+        seconds++;
+        const min = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const sec = String(seconds % 60).padStart(2, '0');
+        document.getElementById("timerDisplay").innerText = `${min}:${sec}`;
+        if (seconds % 120 === 0) showAlert("Pulse Check");
+        if (seconds % 300 === 0) showAlert("Administer Epi");
+      }, 1000);
+    }
+
+    function showAlert(message) {
+      const alertBox = document.getElementById("alertBox");
+      alertBox.innerText = message;
+      alertBox.style.display = "block";
+      document.body.classList.add("flash-alert");
+      setTimeout(() => {
+        alertBox.style.display = "none";
+        document.body.classList.remove("flash-alert");
+      }, 5000);
+    }
+  </script>
+<audio id="beepSound" preload="auto" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+<script>
+  let beatCounter = 0;
+  function playMetronome() {
+    const beep = document.getElementById("beepSound");
+    setInterval(() => {
+      beatCounter++;
+      beep.play();
+      if (beatCounter % 30 === 0) {
+        setTimeout(() => {}, 1500); // simulate a pause for 2 breaths
+      }
+    }, 600); // 100 BPM = 600 ms
+  }
+  // Auto-start metronome with timer
+  function startTimer() {
+    clearInterval(timerInterval);
+    seconds = 0;
+    beatCounter = 0;
+    playMetronome();
+    timerInterval = setInterval(() => {
+      seconds++;
+      const min = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const sec = String(seconds % 60).padStart(2, '0');
+      document.getElementById("timerDisplay").innerText = `${min}:${sec}`;
+      if (seconds % 120 === 0) showAlert("Pulse Check");
+      if (seconds % 300 === 0) showAlert("Administer Epi");
+    }, 1000);
+  }
+</script>
+</body>
+</html>
